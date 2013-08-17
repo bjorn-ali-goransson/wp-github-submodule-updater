@@ -7,8 +7,6 @@ add_action('admin_menu', function(){
 });
 
 function update_git_submodules(){
-  $contents = explode("\n", file_get_contents(get_template_directory() . '/.gitmodules'));
-
   if(isset($_GET['redo_submodule_name'])){
     $submodule_name = $_GET['redo_submodule_name'];
 
