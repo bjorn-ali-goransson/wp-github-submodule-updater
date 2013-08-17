@@ -82,7 +82,7 @@ function update_git_submodules(){
         }
       }
       
-      require_once dirname(__FILE__) . '/../../../wp-admin/includes/class-pclzip.php';
+      require_once getcwd() . '/includes/class-pclzip.php';
 
       $archive = new PclZip($file_path);
       if(!$archive->extract(PCLZIP_OPT_PATH, $download_path)){
