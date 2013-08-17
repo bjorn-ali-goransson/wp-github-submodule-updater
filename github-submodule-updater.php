@@ -129,6 +129,10 @@ function update_git_submodules(){
         $submodule_author = gitmodules_get_author($submodule_url);
         $submodule_repo = gitmodules_get_repo($submodule_url);
 
+        if(!$submodule_author || !$submodule_repo){
+          return; // not a github repo
+        }
+
         ?>
           <div class="wrap">
             <div id="icon-tools" class="icon32"><br></div>
