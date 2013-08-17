@@ -113,7 +113,7 @@ function update_git_submodules(){
       <p>Updating was successful!</p>
       <p><a href="tools.php?page=update-github-submodules" class="button-primary" id="update-github-submodules">Return</a></p>
       <script>
-        //location.href = document.getElementById("update-github-submodules").href;
+        location.href = document.getElementById("update-github-submodules").href;
       </script>
 
     <?php
