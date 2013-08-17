@@ -276,8 +276,6 @@ function update_git_submodules(){
             </form>
           </div>
         <?php
-      }
-    }
   } else {
     ?>
       <div class="wrap">
@@ -341,7 +339,7 @@ function gitmodules_get_all(){
       $submodule->author = $submodule_author;
       $submodule->repo = $submodule_repo;
       
-      $submodule->is_github = strpos($submodule->url, '://github.com') === FALSE);
+      $submodule->is_github = strpos($submodule->url, '://github.com') !== FALSE;
 
       $submodules[] = $submodule;
     }
