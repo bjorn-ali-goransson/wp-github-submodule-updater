@@ -304,7 +304,7 @@ function update_git_submodules(){
               if($submodule_name = gitmodules_get_name($line)){
                 $submodule_path = gitmodules_get_path($contents[++$i]);
                 $submodule_url = gitmodules_get_url($contents[++$i]);
-
+                
                 if(defined('WPLANG')){
                   setlocale(LC_ALL, WPLANG);
                 }
@@ -317,7 +317,13 @@ function update_git_submodules(){
                 $undone = file_exists($undone_path);
 
                 ?>
-                  <li><code title="Folder last modified <?php echo utf8_encode(strftime("%c", filemtime(get_template_directory() . '/' . $submodule_path))); ?>"><?php echo $submodule_name; ?></code> <a href="<?php echo $submodule_url; ?>" target="_blank" class="button">View on GitHub</a> <?php if($old){ ?> <a href="<?php echo add_parameter_to_url('undo_submodule_name', $submodule_name); ?>" class="button">Undo</a> <?php } ?><?php if($undone){ ?> <a href="<?php echo add_parameter_to_url('redo_submodule_name', $submodule_name); ?>" class="button">Redo</a> <?php } ?><a href="<?php echo add_parameter_to_url('submodule_name', $submodule_name); ?>" class="button-primary">Update</a></li>
+                  <li>
+                    <code title="Folder last modified <?php echo utf8_encode(strftime("%c", filemtime(get_template_directory() . '/' . $submodule_path))); ?>"><?php echo $submodule_name; ?></code>
+                    <a href="<?php echo $submodule_url; ?>" title="<?php echo $submodule_url; ?>" target="_blank" class="button">View on GitHub</a>
+                    <?php if($old){ ?> <a href="<?php echo add_parameter_to_url('undo_submodule_name', $submodule_name); ?>" title="Undo folder last modified <?php echo utf8_encode(strftime("%c", filemtime(get_template_directory() . '/' . $submodule_path))); ?>" class="button">Undo</a> <?php } ?>
+                    <?php if($undone){ ?> <a href="<?php echo add_parameter_to_url('redo_submodule_name', $submodule_name); ?>" title="Undone folder last modified <?php echo utf8_encode(strftime("%c", filemtime(get_template_directory() . '/' . $submodule_path))); ?>" class="button">Redo</a> <?php } ?>
+                    <a href="<?php echo add_parameter_to_url('submodule_name', $submodule_name); ?>" class="button-primary">Update</a>
+                  </li>
                 <?php
               }
             }
