@@ -205,7 +205,7 @@ function update_git_submodules(){
                 }
 
                 ?>
-                  <li><code title="Folder last modified <?php echo utf8_encode(strftime("%c", filemtime(get_template_directory() . '/' . $submodule_path))); ?>"><?php echo $submodule_name; ?></code> <a href="<?php echo $submodule_url; ?>" target="_blank" class="button">View on GitHub</a> <?php if($old){ ?> <a href="<?php echo add_parameter_to_url('undo_submodule_name', $submodule_name); ?>" class="button">Undo</a> <?php } ?><a href="<?php echo add_parameter_to_url('submodule_name', $submodule_name); ?>" onclick="return confirm('Be careful, you\'re updating <?php echo $submodule_repo; ?>!');" class="button-primary">Update</a></li>
+                  <li><code title="Folder last modified <?php echo utf8_encode(strftime("%c", filemtime(get_template_directory() . '/' . $submodule_path))); ?>"><?php echo $submodule_name; ?></code> <a href="<?php echo $submodule_url; ?>" target="_blank" class="button">View on GitHub</a> <?php if($old){ ?> <a href="<?php echo add_parameter_to_url('undo_submodule_name', $submodule_name); ?>" class="button">Undo</a> <?php } ?><a href="<?php echo add_parameter_to_url('submodule_name', $submodule_name); ?>" class="button-primary">Update</a></li>
                 <?php
               }
             }
