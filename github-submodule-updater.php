@@ -226,25 +226,12 @@ function update_git_submodules(){
 
     <?php
   } else if(isset($_GET['submodule_name'])){
-    echo "<pre></pre>";
-    for($i = 0; $i < count($contents); $i++){
-      $line = $contents[$i];
-      
-      if(($submodule_name = gitmodules_get_name($line)) && ($submodule_name == $_GET['submodule_name'])){
-        $submodule_path = gitmodules_get_path($contents[++$i]);
-        $submodule_url = gitmodules_get_url($contents[++$i]);
+        $submodule = gitmodules_get_by_name($_GET['submodule_name']);
         
-        $submodule_author = gitmodules_get_author($submodule_url);
-        $submodule_repo = gitmodules_get_repo($submodule_url);
-
-        if(!$submodule_author || !$submodule_repo){
-          return; // not a github repo
-        }
-
         ?>
           <div class="wrap">
             <div id="icon-tools" class="icon32"><br></div>
-            <h2>Update <?php echo $submodule_repo; ?></h2>
+            <h2>Update <?php echo $submodule->repo; ?></h2>
             <form action="<?php echo 'http://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI']; ?>" method="get">
               <?php
                 foreach($_GET as $key => $value){
@@ -253,12 +240,12 @@ function update_git_submodules(){
                   <?php
                 }
               ?>
-              <input type="hidden" name="author" value="<?php echo $submodule_author; ?>" />
-              <input type="hidden" name="repo" value="<?php echo $submodule_repo; ?>" />
-              <input type="hidden" name="path" value="<?php echo $submodule_path; ?>" />
+              <input type="hidden" name="author" value="<?php echo $submodule->author; ?>" />
+              <input type="hidden" name="repo" value="<?php echo $submodule->repo; ?>" />
+              <input type="hidden" name="path" value="<?php echo $submodule->path; ?>" />
 
               <?php
-                $branches = json_decode(file_get_contents("https://api.github.com/repos/$submodule_author/$submodule_repo/branches") );
+                $branches = json_decode(file_get_contents("https://api.github.com/repos/$submodule->author/$submodule->repo/branches") );
 
                 if(!$branches){
                   echo 'Couldn\'t get GitHub branches'; return;
@@ -299,6 +286,10 @@ function update_git_submodules(){
         <ul>
           <?php
             foreach(gitmodules_get_all() as $submodule){
+                if(!$submodule->is_github){
+                  continue;
+                }
+                
                 if(defined('WPLANG')){
                   setlocale(LC_ALL, WPLANG);
                 }
@@ -349,6 +340,8 @@ function gitmodules_get_all(){
       $submodule->url = $submodule_url;
       $submodule->author = $submodule_author;
       $submodule->repo = $submodule_repo;
+      
+      $submodule->is_github = strpos($submodule->url, '://github.com') === FALSE);
 
       $submodules[] = $submodule;
     }
