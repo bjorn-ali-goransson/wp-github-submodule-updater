@@ -9,7 +9,61 @@ add_action('admin_menu', function(){
 function update_git_submodules(){
   $contents = explode("\n", file_get_contents(get_template_directory() . '/.gitmodules'));
 
-  if(isset($_GET['branch'])){
+  if(isset($_GET['undo_submodule_name'])){
+    $submodule_name = $_GET['undo_submodule_name'];
+
+    $submodule = gitmodules_get_by_name($submodule_name);
+    
+    $repo_dir = get_template_directory() . '/' . $submodule->path;
+    $old_repo_dir = $repo_dir . '.old';
+    $undone_repo_dir = $repo_dir . '.undone';
+    
+    if(!file_exists($old_repo_dir)){
+      ?>
+        <p>Old repo dir doesn't exist, so no undo history exists! (<code><?php echo $old_repo_dir; ?></code>);</p>
+      <?php
+      return;
+    }
+    
+    if(file_exists($undone_repo_dir)){
+      foreach(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($undone_repo_dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST) as $rmpath) {
+        $rmpath->isFile() ? unlink($rmpath->getPathname()) : rmdir($rmpath->getPathname());
+      }
+
+      rmdir($undone_repo_dir);
+
+      if(file_exists($undone_repo_dir)){
+        ?>
+          <p>Couldn't remove undone repo dir (<code><?php echo $undone_repo_dir; ?></code>);</p>
+        <?php
+        return;
+      }
+    }
+    
+    if(!rename($repo_dir, $undone_repo_dir)){
+      ?>
+        <p>Couldn't backup current repo dir to undone dir(<code><?php echo $repo_dir; ?> to <?php echo $undone_repo_dir; ?></code>);</p>
+      <?php
+      return;
+    }
+    
+    if(!rename($old_repo_dir, $repo_dir)){
+      ?>
+        <p>Couldn't undo old repo dir to current dir(<code><?php echo $old_repo_dir; ?> to <?php echo $repo_dir; ?></code>);</p>
+      <?php
+      return;
+    }
+
+    ?>
+
+      <p>Undoing was successful!</p>
+      <p><a href="tools.php?page=update-github-submodules" class="button-primary" id="return">Return</a></p>
+      <script>
+        location.href = document.getElementById("return").href;
+      </script>
+
+    <?php
+  } else if(isset($_GET['branch'])){
       $branch = $_GET['branch'];
       $author = $_GET['author'];
       $repo = $_GET['repo'];
@@ -83,7 +137,7 @@ function update_git_submodules(){
       }
       
       require_once getcwd() . '/includes/class-pclzip.php';
-      
+
       $archive = new PclZip($file_path);
       if(!$archive->extract(PCLZIP_OPT_PATH, $download_path)){
         ?>
@@ -169,7 +223,7 @@ function update_git_submodules(){
                         <?php
                           foreach($branches as $branch){
                             ?>
-                              <option><?php echo $branch->name; ?></option>
+                              <option<?php if($branch->name == 'master'){echo ' selected="selected"';} ?>><?php echo $branch->name; ?></option>
                             <?php
                           }
                         ?>
@@ -196,21 +250,18 @@ function update_git_submodules(){
               if($submodule_name = gitmodules_get_name($line)){
                 $submodule_path = gitmodules_get_path($contents[++$i]);
                 $submodule_url = gitmodules_get_url($contents[++$i]);
-                
-                $submodule_author = gitmodules_get_author($submodule_url);
-                $submodule_repo = gitmodules_get_repo($submodule_url);
-                
+
                 if(defined('WPLANG')){
                   setlocale(LC_ALL, WPLANG);
                 }
-                
+
                 $path = get_template_directory() . '/' . $submodule_path;
                 $old_path = $path . '.old';
                 
                 $old = file_exists($old_path);
-                
+
                 ?>
-                  <li><code title="Folder last modified <?php echo utf8_encode(strftime("%c", filemtime(get_template_directory() . '/' . $submodule_path))); ?>"><?php echo $submodule_name; ?></code> <?php if($old){ ?><a href="<?php echo add_parameter_to_url('undo_submodule_name', $submodule_name); ?>" class="button">Undo</a> <?php } ?><a href="<?php echo add_parameter_to_url('submodule_name', $submodule_name); ?>" class="button-primary">Update</a> <a href="<?php echo $submodule_url; ?>" target="_blank" class="button">View on GitHub</a></li>
+                  <li><code title="Folder last modified <?php echo utf8_encode(strftime("%c", filemtime(get_template_directory() . '/' . $submodule_path))); ?>"><?php echo $submodule_name; ?></code> <a href="<?php echo $submodule_url; ?>" target="_blank" class="button">View on GitHub</a> <?php if($old){ ?> <a href="<?php echo add_parameter_to_url('undo_submodule_name', $submodule_name); ?>" class="button">Undo</a> <?php } ?><a href="<?php echo add_parameter_to_url('submodule_name', $submodule_name); ?>" class="button-primary">Update</a></li>
                 <?php
               }
             }
@@ -219,6 +270,48 @@ function update_git_submodules(){
       </div>
     <?php
   }
+}
+
+function gitmodules_get_all(){
+  $contents = explode("\n", file_get_contents(get_template_directory() . '/.gitmodules'));
+
+  $submodules = array();
+
+  for($i = 0; $i < count($contents); $i++){
+    $line = $contents[$i];
+      
+    if(($submodule_name = gitmodules_get_name($line))){
+      $submodule_path = gitmodules_get_path($contents[++$i]);
+      $submodule_url = gitmodules_get_url($contents[++$i]);
+        
+      $submodule_author = gitmodules_get_author($submodule_url);
+      $submodule_repo = gitmodules_get_repo($submodule_url);
+
+      $submodule = new stdClass;
+      
+      $submodule->name = $submodule_name;
+      $submodule->path = $submodule_path;
+      $submodule->url = $submodule_url;
+      $submodule->author = $submodule_author;
+      $submodule->repo = $submodule_repo;
+
+      $submodules[] = $submodule;
+    }
+  }
+
+  return $submodules;
+}
+
+function gitmodules_get_by_name($name){
+  $submodules = gitmodules_get_all();
+
+  foreach($submodules as $submodule){
+    if($submodule->name == $name){
+      return $submodule;
+    }
+  }
+
+  return NULL;
 }
 
 function gitmodules_get_name($line){
