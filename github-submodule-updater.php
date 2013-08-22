@@ -297,13 +297,15 @@ function update_git_submodules(){
                 $old = file_exists($old_path);
                 $undone = file_exists($undone_path);
 
+                $submodule_exists = file_exists($path);
+
                 ?>
                   <li>
                     <code title="Folder last modified <?php echo utf8_encode(strftime("%c", filemtime($path))); ?>"><?php echo $submodule->name; ?></code>
                     <a href="<?php echo $submodule->url; ?>" title="<?php echo $submodule->url; ?>" target="_blank" class="button">View on GitHub</a>
                     <?php if($old){ ?> <a href="<?php echo add_parameter_to_url('undo_submodule_name', $submodule->name); ?>" title="Undo folder last modified <?php echo utf8_encode(strftime("%c", filemtime($path))); ?>" class="button">Undo</a> <?php } ?>
                     <?php if($undone){ ?> <a href="<?php echo add_parameter_to_url('redo_submodule_name', $submodule->name); ?>" title="Undone folder last modified <?php echo utf8_encode(strftime("%c", filemtime($path))); ?>" class="button">Redo</a> <?php } ?>
-                    <a href="<?php echo add_parameter_to_url('submodule_name', $submodule->name); ?>" class="button-primary">Update</a>
+                    <a href="<?php echo add_parameter_to_url('submodule_name', $submodule->name); ?>" class="button-primary"><?php if($submodule_exists){echo 'Update';} else {echo 'Download';} ?></a>
                   </li>
                 <?php
             }
