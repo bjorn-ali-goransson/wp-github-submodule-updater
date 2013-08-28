@@ -1,0 +1,3 @@
+[submodule "lib/github-submodule-updater"]
+	path = lib/github-submodule-updater
+	url = https://github.com/bornemix/github-submodule-updater
