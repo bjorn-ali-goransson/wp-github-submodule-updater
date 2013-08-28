@@ -1,5 +1,7 @@
 <?php
 
+require dirname(__FILE__) . '/lib/github-submodule-updater/github-submodule-updater.php';
+
 add_action('admin_menu', function(){
   if(file_exists(get_template_directory() . '/.gitmodules')){
     add_management_page("Update GitHub submodules", "Update GitHub submodules", "edit_theme_options", 'update-github-submodules', 'update_git_submodules');
@@ -122,7 +124,8 @@ function update_git_submodules(){
       $path = $_GET['path'];
 
       $download_folder_name = 'from-github';
-      $download_path = wp_upload_dir()['basedir'] . '/' . $download_folder_name;
+      $upload_dir = wp_upload_dir();
+      $download_path = $upload_dir['basedir'] . '/' . $download_folder_name;
       $file_path = $download_path . '/' . $repo . '.zip';
 
       if(!file_exists($download_path)){
@@ -279,123 +282,91 @@ function update_git_submodules(){
       <div class="wrap">
         <div id="icon-tools" class="icon32"><br></div>
         <h2>Update GitHub submodules</h2>
-        <ul>
-          <?php
-            foreach(gitmodules_get_all() as $submodule){
-                if(!$submodule->is_github){
-                  continue;
-                }
-                
-                if(defined('WPLANG')){
-                  setlocale(LC_ALL, WPLANG);
-                }
+        <?php
+          if(defined('WPLANG')){
+            setlocale(LC_ALL, WPLANG);
+          }
 
-                $path = get_template_directory() . '/' . $submodule->path;
-                $old_path = $path . '.old';
-                $undone_path = $path . '.undone';
-                
-                $old = file_exists($old_path);
-                $undone = file_exists($undone_path);
+          function list_submodules($gitmodules_path = '', $level = 0, &$i = 0){
+            if($level == 0){
+              ?>
+                <ul class="subsubsub"></ul>
+                <table class="wp-list-table widefat fixed pages" cellspacing="0">
+	                <thead>
+	                  <tr>
+		                  <th scope="col" id="cb" class="manage-column column-cb check-column"></th>
+                      <th scope="col" id="title" class="manage-column column-title">Title</th>
+                      <th scope="col" id="author" class="manage-column column-author">Author</th>
+                      <th scope="col" id="date" class="manage-column column-date">Date</th>
+                    </tr>
+	                </thead>
 
-                $submodule_exists = file_exists($path);
+	                <tfoot>
+	                  <tr>
+		                  <th scope="col" class="manage-column column-cb check-column"></th>
+                      <th scope="col" class="manage-column column-title ">Title</th>
+                      <th scope="col" class="manage-column column-author">Author</th>
+                      <th scope="col" class="manage-column column-date">Date</th>
+                    </tr>
+	                </tfoot>
 
-                ?>
-                  <li>
-                    <code title="Folder last modified <?php echo utf8_encode(strftime("%c", filemtime($path))); ?>"><?php echo $submodule->name; ?></code>
-                    <a href="<?php echo $submodule->url; ?>" title="<?php echo $submodule->url; ?>" target="_blank" class="button">View on GitHub</a>
-                    <?php if($old){ ?> <a href="<?php echo add_parameter_to_url('undo_submodule_name', $submodule->name); ?>" title="Undo folder last modified <?php echo utf8_encode(strftime("%c", filemtime($path))); ?>" class="button">Undo</a> <?php } ?>
-                    <?php if($undone){ ?> <a href="<?php echo add_parameter_to_url('redo_submodule_name', $submodule->name); ?>" title="Undone folder last modified <?php echo utf8_encode(strftime("%c", filemtime($path))); ?>" class="button">Redo</a> <?php } ?>
-                    <a href="<?php echo add_parameter_to_url('submodule_name', $submodule->name); ?>" class="button-primary"><?php if($submodule_exists){echo 'Update';} else {echo 'Download';} ?></a>
-                  </li>
-                <?php
+	                <tbody id="the-list">
+              <?php
             }
-          ?>
-        </ul>
+
+            foreach(gitmodules_get_all($gitmodules_path) as $submodule){
+              ?>
+				        <tr class="type-page status-publish hentry <?php if($i % 2 == 0) echo 'alternate'; ?> iedit author-self" valign="top">
+				          <th scope="row" class="check-column"></th>
+			            <td class="post-title page-title column-title">
+                    <strong><span class="row-title"><a href="<?php echo str_replace(array('git://', '.git'), array('https://', ''), $submodule->url); ?>" target="_blank" title="<?php _e('View on GitHub'); ?>"><?php echo str_repeat('— ', $level); ?><?php echo $submodule->repo; ?></a></span></strong>
+                    <div class="row-actions">
+                      <?php
+                        if($submodule->path_exists){
+                          ?>
+                            <?php
+                              if(file_exists($submodule->path . '.old')){
+                                ?>
+                                  <span class="undo"><a href="<?php echo add_parameter_to_url('undo_submodule_name', $submodule->name); ?>">Undo</a> | </span>
+                                <?php
+                              }
+                              if(file_exists($submodule->path . '.undone')){
+                                ?>
+                                  <span class="redo"><a href="<?php echo add_parameter_to_url('redo_submodule_name', $submodule->name); ?>">Redo</a> | </span>
+                                <?php
+                              }
+                            ?>
+                            <span class="update"><a href="<?php echo add_parameter_to_url('submodule_name', $submodule->name) ?>">Update</a></span>
+                          <?php
+                        } else {
+                          ?>
+                            <span class="download"><a href="<?php echo add_parameter_to_url('submodule_name', $submodule->name) ?>">Download</a></span>
+                          <?php
+                        }
+                      ?>
+                    </div>
+                  </td>
+                  <td class="author column-author"><a href="https://github.com/<?php echo $submodule->author; ?>" target="_blank"><?php echo $submodule->author; ?></a></td>
+					        <td class="date column-date"><abbr title="<?php echo $submodule->path_exists ? date(__('Y/m/d g:i:s A'), filemtime($submodule->path)) : ''; ?>"><?php echo $submodule->path_exists ? date(__('Y/m/d'), filemtime($submodule->path)) : ''; ?></abbr><br><?php echo $submodule->path_exists ? __('Updated') : ''; ?></td>
+                </tr>
+              <?php
+              if($submodule->gitmodules_exists){
+                list_submodules($submodule->path, $level + 1, $i);
+              }
+            }
+            
+            if($level == 0){
+              ?>
+		              </tbody>
+                </table>
+              <?php
+            }
+          }
+
+          list_submodules(get_template_directory());
+
+        ?>
       </div>
     <?php
-  }
-}
-
-function gitmodules_get_all(){
-  $contents = explode("\n", file_get_contents(get_template_directory() . '/.gitmodules'));
-
-  $submodules = array();
-
-  for($i = 0; $i < count($contents); $i++){
-    $line = $contents[$i];
-      
-    if(($submodule_name = gitmodules_get_name($line))){
-      $submodule_path = gitmodules_get_path($contents[++$i]);
-      $submodule_url = gitmodules_get_url($contents[++$i]);
-        
-      $submodule_author = gitmodules_get_author($submodule_url);
-      $submodule_repo = gitmodules_get_repo($submodule_url);
-
-      $submodule = new stdClass;
-      
-      $submodule->name = $submodule_name;
-      $submodule->path = $submodule_path;
-      $submodule->url = $submodule_url;
-      $submodule->author = $submodule_author;
-      $submodule->repo = $submodule_repo;
-      
-      $submodule->is_github = strpos($submodule->url, '://github.com') !== FALSE;
-
-      $submodules[] = $submodule;
-    }
-  }
-
-  return $submodules;
-}
-
-function gitmodules_get_by_name($name){
-  $submodules = gitmodules_get_all();
-
-  foreach($submodules as $submodule){
-    if($submodule->name == $name){
-      return $submodule;
-    }
-  }
-
-  return NULL;
-}
-
-function gitmodules_get_name($line){
-  if(preg_match('@\[submodule "([^"]+)"\]@', $line, $matches)){
-    return $matches[1];
-  } else {
-    return FALSE;
-  }
-}
-
-function gitmodules_get_path($line){
-  if(preg_match('@\s+path\s+=\s+(.+)@', $line, $matches)){
-    return $matches[1];
-  } else {
-    return FALSE;
-  }
-}
-
-function gitmodules_get_url($line){
-  if(preg_match('@\s+url\s+=\s+(.+)@', $line, $matches)){
-    return $matches[1];
-  } else {
-    return FALSE;
-  }
-}
-
-function gitmodules_get_author($submodule_url){
-  if(preg_match('@://github.com/([^/]+)/@', $submodule_url, $matches)){
-    return $matches[1];
-  } else {
-    return FALSE;
-  }
-}
-
-function gitmodules_get_repo($submodule_url){
-  if(preg_match('@://github.com/[^/]+/([^.]+)\.git@', $submodule_url, $matches)){
-    return $matches[1];
-  } else {
-    return FALSE;
   }
 }
